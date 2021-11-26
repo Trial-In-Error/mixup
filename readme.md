@@ -11,8 +11,6 @@ A tool for generating PDF bingo cards with arbitrary, custom cells.
 ### Possible improvements
 - Fully support custom paper sizes (contribute back to pdfkit?)
 - Write driver script for generating multiple at a time ("count"?)
-- Error checking for too-few options
-- Error checking for out-of-bounds free spaces
 - Customizable formatting for free spaces
 - Customizable formatting for normal spaces
 - Customizable header / title section
