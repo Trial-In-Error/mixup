@@ -1,0 +1,10 @@
+{
+  "seed": "",
+  "rows": 5,
+  "columns": 5,
+  "paperSize": "LETTER",
+  "freeSpaces": [[2, 2, 'Free space']],
+  "options": "./example-options.json",
+  "output": "./output.pdf",
+  "debug": false
+}
