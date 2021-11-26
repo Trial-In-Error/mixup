@@ -6,22 +6,21 @@ const seed = config.seed || String(Math.random()).split('.').pop()
 const random = require('seedrandom')(seed);
 
 // Create a document
-const doc = new PDFDocument({ size: config.paperSize })
-
 // bug: this assumes paperSize is "LETTER"
-const widthMM = 612.00
-const heightMM = 792.00
+const widthMM = 612
+const heightMM = 792
 
 const rows = config.rows
 const columns = config.columns
 const freeSpaces = config.freeSpaces
+const count = config.count
 
 const options = require(config.options)
 
 function draw(options) {
   const index = Math.floor(random() * options.length)
-  const option = options.splice(index, 1)
-  debug(`Drew option ${index}: ${option}`)
+  const option = options.splice(index, 1).pop()
+  debug(`\tDrew option ${index}: ${option}`)
   return option
 }
 
@@ -30,6 +29,7 @@ function debug(...strings) {
 }
 
 function verifyOptions(options) {
+  debug(options)
   if (freeSpaces.length + options.length < rows * columns)
     throw new Error(`Need ${rows * columns - (freeSpaces.length + options.length)} more option(s) or free space(s) to fill the board.`)
 }
@@ -53,27 +53,41 @@ function verifyFreeSpaces() {
 verifyFreeSpaces()
 verifyOptions(options)
 
-// Pipe its output somewhere, like to a file or HTTP response
-doc.pipe(fs.createWriteStream(config.output))
+function generateCard(index, options) {
+  const doc = new PDFDocument({ size: config.paperSize })
+  const cardOptions = [...options]
 
-for(let i = 0; i < columns; i++) {
-  debug('Starting row', i)
-  for(let j = 0; j < rows; j++) {
-  debug('Starting column', j)
-    const matchingFreeSpace = freeSpaces.filter((space) => space[0] === j && space[1] === i)[0]
-    if (matchingFreeSpace) {
-      doc
-        .fontSize(12)
-        .text(matchingFreeSpace[2], (widthMM / columns)*i, (heightMM / rows)*(j+1), { width: (widthMM / columns), height: (heightMM / rows), align: 'center', baseline: heightMM / rows / 2 })
-    } else {
-      doc
-        .fontSize(12)
-        .text(draw(options), (widthMM / columns)*i, (heightMM / rows)*(j+1), { width: (widthMM / columns), height: (heightMM / rows), align: 'center', baseline: heightMM / rows / 2 })
+  // Pipe its output somewhere, like to a file or HTTP response
+  doc.pipe(fs.createWriteStream(config.output.replace('%', String(index))))
+
+  for (let i = 0; i < columns; i++) {
+    for (let j = 0; j < rows; j++) {
+      debug(`Populating cell [${i}, ${j}]:`)
+      const matchingFreeSpace = freeSpaces.filter((space) => space[0] === j && space[1] === i)[0]
+      if (matchingFreeSpace) {
+        debug(`\tFree space with text ${matchingFreeSpace[2]}`)
+        doc
+          .fontSize(12)
+          .text(matchingFreeSpace[2], (widthMM / columns)*i, (heightMM / rows)*(j+1), { width: (widthMM / columns), height: (heightMM / rows), align: 'center', baseline: heightMM / rows / 2 })
+      } else {
+        let text = draw(cardOptions)
+        doc
+          .fontSize(12)
+          .text(text, (widthMM / columns)*i, (heightMM / rows)*(j+1), { width: (widthMM / columns), height: (heightMM / rows), align: 'center', baseline: heightMM / rows / 2 })
+      }
     }
   }
+
+  // Finalize PDF file
+  doc.end();
 }
 
-// Finalize PDF file
-doc.end();
+for (let i = 1; i <= count; i++) {
+  generateCard(i, options)
+}
 
-console.log(`Finished generating ${rows}x${columns} bingo card for seed ${seed}.`)
+if (count === 1) {
+  console.log(`Finished generating ${rows}x${columns} bingo card for seed ${seed}.`)
+} else {
+  console.log(`Finished generating ${count} different ${rows}x${columns} bingo cards for seed ${seed}.`)
+}
